@@ -1,0 +1,44 @@
+week 4 class discussion
+========================================================
+author: 
+date: January 31st, 2018
+autosize: true
+
+Measurement Process Characterization
+========================================================
+
+
+2.4 Gauge R & R studies
+=========================
+
+2.4 Gauge R & R studies
+=========================
+## Important issues
+
+- Repeatability
+- Reproducibility
+- Stabiiltiy 
+- Bias
+
+Measurement Process Characterization
+========================================================
+### Important issues
+
+- Repeatability - precision
+- Reproducibility - day-to-day variability
+- Stabiiltiy - run-to-run 
+- Bias - "systematic error"
+
+Slide With Code
+========================================================
+
+```{r}
+summary(cars)
+```
+
+Slide With Plot
+========================================================
+
+```{r, echo=FALSE}
+plot(cars)
+```

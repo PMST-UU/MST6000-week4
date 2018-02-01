@@ -2,18 +2,307 @@
 title: "Week 4 - in class discussion materials"
 output: html_notebook
 ---
+# Measurement Process Characterization
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+## Where is ggplot being used?
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+Recent article on [GDP](https://www.nytimes.com/2018/01/26/business/economy/gdp-economy.html)
+
+Recent article on the [economy](https://www.vox.com/policy-and-politics/2018/1/30/16945386/trump-economy-state-of-the-union)
+
+Recent article on [science education](http://physicstoday.scitation.org/doi/10.1063/PT.3.3816)
+
+>The nine lab courses covered both mechanics and electricity and magnetism; and they used algebra- and calculus-based approaches. They were offered at 3 institutions, taught by 7 instructors, and taken by nearly 3000 students. 
+
+
+## 2.4 Gauge R & R studies
 
 ```{r}
-plot(cars)
+library(tidyverse)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+***
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+### Important issues
+
+- Repeatability - precision
+- Reproducibility - day-to-day variability
+- Stabiiltiy - run-to-run 
+- Bias - "systematic error"
+
+
+### Design considerations
+
+- Artifiacts (check standards)
+- Operators
+- Gauges
+    - Parameter levels
+    - Configuraitons
+
+***
+
+### Analysis of repeatability
+- Plot of repeatability standard deviations versus check standard with day coded
+- Plot of repeatabaility standard deviation versus check standard with gauge coded
+
+***
+Data:  
+Column 1:   Run Number (1 or 2)  
+Column 2:   Wafer ID (check standards 138, 139, 140, 141, 142)  
+Column 3:   Probe (1, 281, 283 2062, 2362)  
+Column 4:   Month  
+Column 5:   Day  
+Column 6:   Operator (1 or 2)  
+Column 7:   Temperature  
+Column 8:   Average of Resistivity Measurements  
+Column 9:   Standard Deviation of Resistivity Measurements  
+
+***
+
+```{r read mpc61 data}
+mpc61a_clean <- read_csv('mpc61a_clean.csv')
+mpc61a_clean
+```
+
+              
+***
+
+### Define s1 based on the pooled statndard deviation of the stdev column
+
+```{r s1}
+s1_mpc61 <- sqrt(mean(mpc61a_clean$stdev^2))
+s1_mpc61
+```
+
+### Plot the stdev by wafer, coded by day for each run
+
+Here are the NIST plots:
+
+[2.6.1.2 Repeatability standard deviations](http://www.itl.nist.gov/div898/handbook/mpc/section6/mpc613.htm)
+
+
+```{r repeatability by wafer}
+ggplot(mpc61a_clean) +
+  geom_point(aes(x = wafer, y = stdev, colour = day)) +
+  facet_wrap(~ run)
+
+```
+
+***
+
+###
+Issues?
+
+I don't like the continuous scale. This meeans we would need to set the days as factors.
+
+```{r run repeatability by wafer and day}
+ggplot(mpc61a_clean) +
+  geom_point(aes(x = wafer, y = stdev, colour = as.factor(day))) +
+  facet_wrap(~ run)
+```
+
+***
+I don't really need to know the actuall days, I just want to compare days. So I can turn off the legend. I also prefer the theme_bw()
+
+```{r run repeatability by wafer and day rev2}
+ggplot(mpc61a_clean) +
+  geom_jitter(aes(x = wafer, y = stdev, colour = as.factor(day)), width = 0.2, height = 0) +
+  facet_wrap(~ run) +
+    theme(legend.position = "none", panel.background = element_rect(fill = "white", linetype = "solid", colour = "black"), panel.grid.major = element_line(colour = "grey90"))
+  
+```
+
+***
+or
+
+```{r keep it simple}
+ggplot(mpc61a_clean) +
+  geom_jitter(aes(x = wafer, y = stdev, colour = as.factor(day)), width = 0.2, height = 0) +
+  facet_wrap(~ run) +
+    theme(legend.position = "none") + 
+  labs(caption = "color coded by day")
+```
+
+***
+
+### Repeat the above steps, but color code by probe
+
+```{r }
+ggplot(mpc61a_clean) +
+  geom_jitter(aes(x = wafer, y = stdev, colour = as.factor(probe)), width = 0.2, height = 0) +
+  facet_wrap(~ run) +
+  labs(colour = "probe")
+```
+
+```{r}
+ggplot(mpc61a_clean) +
+  geom_jitter(aes(x = wafer, y = stdev, colour = as.factor(probe)), width = 0.2, height = 0) +
+  facet_grid(run ~ probe) +
+  labs(colour = "probe")
+```
+
+
+***
+
+### Analysis of reproducibility and stability  
+#### Effects of days and long-term stability  
+
+[2.6.1.4 Effects of days and long-term stability](http://www.itl.nist.gov/div898/handbook/mpc/section6/mpc614.htm)
+
+For each wafer, I'd like to look at the reproducability and long-term stability
+
+```{r reproducability and long-term stability, echo=TRUE}
+ggplot(mpc61a_clean) +
+  geom_point(aes(x = date_time, y = average, colour = as.factor(run))) +
+  facet_grid(wafer ~ probe, scales = "free_y") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  labs(colour = "run") 
+```
+
+***
+
+### Analysis of bias (????)
+#### Differences among gauges
+
+[2.6.1.5 Differences among 5 probes](http://www.itl.nist.gov/div898/handbook/mpc/section6/mpc615.htm)
+
+```{r}
+ggplot(mpc61a_clean) +
+  geom_point(aes(x = wafer, y = average, colour = probe)) +
+  facet_grid(wafer ~ run, scales = "free_y")
+```
+
+```{r}
+ggplot(mpc61a_clean) +
+  geom_boxplot(aes(x = as.factor(probe), y = average)) +
+  facet_grid(wafer ~ run, scales = "free_y")
+```
+
+```{r}
+ggplot(mpc61a_clean) +
+  geom_boxplot(aes(x = as.factor(probe), y = stdev)) +
+  facet_grid(wafer ~ run, scales = "free_y")
+```
+
+### SixSigma
+```{r}
+library(SixSigma)
+ss.rr(var = average, part = wafer, appr = probe, data = mpc61a_clean, main = "SixSigma analysis of MPC61.DAT file", sub = "for MST 6600")
+
+```
+
+
+
+
+```{r}
+ss.rr(var = average, part = run, appr = probe, data = mpc61a_clean, main = "SixSigma analysis of MPC61.DAT file", sub = "for MST 6600 test")
+```
+
+Go back to RStudio for SixSigma
+
+****
+
+### Looking aheaad (R for Data Science: Chapter 5 - Data Transformation)
+
+#### Look at Guage R & R data
+
+* Principles of tidy data **tidyr** package (part of the **tidyverse** package)
+    * Most common
+        * spread()
+        * gather()
+    * Less common
+        * separate()
+        * unite()
+* Data transfomration with the **dplyr** package (part of the **tidyverse** package)
+    * Most common
+        * filter()
+        * mutate()
+        * group_by() & summarise()
+    * less common for visulazation
+        * arrange()
+        * select()
+        * rename()
+
+### Examples using the `mpc61_clean` data
+
+#### Using the `filter()` function
+
+```{r}
+mpc61_probe2062 <- filter(mpc61a_clean, probe == 2062)
+mpc61_probe2062
+```
+
+### Analysis using new data frame
+
+```{r}
+ggplot(mpc61_probe2062) +
+  geom_jitter(aes(x = wafer, y = stdev, colour = as.factor(run)), width = 0.2, height = 0) +
+  labs(colour = "run")
+```
+
+
+#### comparison of best and worst
+
+From the SixSigma work (and visually) we saw that 2062 was the worse performing probe and 2362 was one of the best. 
+
+```{r}
+mpc61_probes_good_bad <- filter(mpc61a_clean, probe == c(2062, 2362))
+mpc61_probes_good_bad
+```
+
+
+```{r}
+ggplot(mpc61_probes_good_bad) +
+  geom_jitter(aes(x = wafer, y = stdev, colour = as.factor(run)), width = 0.2, height = 0) +
+  facet_wrap(~ probe) +
+  labs(colour = "run")
+```
+
+#### group_by() & summarise()
+
+We've been able to make some great graphics, but what about hte numbers!
+(Editoral comment: Someone will always ask for a summary report, even if the graphics clearly show the answer.)
+
+```{r}
+by_wafer <- group_by(mpc61a_clean, wafer)
+by_wafer
+```
+
+```{r}
+mpc61a_clean
+```
+
+It doesn't look like anything has changed, but R has grouped the data by wafer. We can see this when we use the `summarise()` function.
+
+```{r}
+wafer_summary <- summarise(by_wafer, average = mean(average))
+wafer_summary
+```
+
+```{r}
+ggplot(wafer_summary) +
+  geom_point(aes(x = as.factor(wafer), y = average))
+```
+
+#### We aren't limited to grouping by a single variable
+
+```{r}
+by_wafer_probe <- group_by(mpc61a_clean, wafer, probe)
+by_wafer_probe
+```
+
+#### Again, the data frame looks the same; however, 
+```{r}
+wafer_probe_summary <- summarise(by_wafer_probe, sd_ave = sd(average), n = n())
+wafer_probe_summary
+```
+
+```{r echo=TRUE}
+ggplot(wafer_probe_summary) +
+  geom_bar(aes(x = as.factor(wafer), y = sd_ave, fill = as.factor(probe)), stat = "identity") +
+  facet_grid(. ~ probe) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  labs(fill = "probe", x = "wafer", y = "standard deviation of the average, s2") 
+```
 
